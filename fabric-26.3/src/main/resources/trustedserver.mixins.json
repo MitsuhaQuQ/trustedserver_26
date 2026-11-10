@@ -1,0 +1,30 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.mtmrails.trustedserver.fabric.mixin",
+  "compatibilityLevel": "${java_compatibility}",
+  "mixins": [
+    "ConnectionHoldQueriesMixin",
+    "LegacyQueryHandlerMixin",
+    "ServerLoginHelloMixin",
+    "ServerLoginSessionFallbackMixin",
+    "ServerLoginTimeoutMixin",
+    "ServerStatusPacketListenerMixin"
+  ],
+  "server": [
+    "PlayPacketAccessMixin",
+    "PlayerListPlayAccessMixin",
+    "QueryThreadGs4Mixin",
+    "RestrictedCommandsMixin",
+    "RestrictedGameModeMixin",
+    "ServerPermissionMixin",
+    "SpawnProtectionMixin"
+  ],
+  "client": [
+    "ChatComponentPasswordHistoryMixin",
+    "ClientHandshakePacketListenerAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

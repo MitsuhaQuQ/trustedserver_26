@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "trustedserver",
+  "version": "${version}",
+  "name": "TrustedServer",
+  "description": "Only clients that give a trusted response may join: blocks scanners and exploit bots, hides player names, encrypts authentication.",
+  "license": "All-Rights-Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.mtmrails.trustedserver.fabric.TrustedServerFabric"],
+    "server": ["com.mtmrails.trustedserver.fabric.server.TrustedServerDedicated"],
+    "client": ["com.mtmrails.trustedserver.fabric.client.TrustedServerClient"],
+    "modmenu": ["com.mtmrails.trustedserver.fabric.client.TrustedServerModMenu"]
+  },
+  "mixins": ["trustedserver.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "${minecraft_dependency}",
+    "java": "${java_dependency}",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
+}
