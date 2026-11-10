@@ -4,7 +4,7 @@ import com.mtmrails.trustedserver.client.BackupException;
 import com.mtmrails.trustedserver.client.PlayerKeyBackupManager;
 import java.nio.file.Path;
 import java.util.Optional;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -32,7 +32,7 @@ final class BackupImportPasswordScreen extends Screen {
         int center = width / 2;
         password = new EditBox(font, center - 150, height / 2 - 20, 300, 20, Component.literal("备份密码"));
         password.setMaxLength(256);
-        password.setFormatter((text, offset) -> FormattedCharSequence.forward("•".repeat(text.length()), Style.EMPTY));
+        password.addFormatter((text, offset) -> FormattedCharSequence.forward("•".repeat(text.length()), Style.EMPTY));
         addRenderableWidget(password);
         addRenderableWidget(Button.builder(Component.literal("检查备份"), b -> preview())
                 .bounds(center - 150, height / 2 + 20, 145, 20).build());
@@ -46,7 +46,7 @@ final class BackupImportPasswordScreen extends Screen {
         try {
             PlayerKeyBackupManager.ImportPreview preview = manager.preview(source,
                     secret.isEmpty() ? Optional.empty() : Optional.of(secret));
-            minecraft.setScreen(new BackupImportConfirmScreen(parent, manager, preview));
+            minecraft.setScreenAndShow(new BackupImportConfirmScreen(parent, manager, preview));
         } catch (BackupException e) {
             error = Component.literal(switch (e.kind()) {
                 case PASSWORD_REQUIRED -> "此备份需要密码";
@@ -61,17 +61,17 @@ final class BackupImportPasswordScreen extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.setScreenAndShow(parent);
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, width, height, 0xC0101010);
-        graphics.drawCenteredString(font, title, width / 2, height / 2 - 70, 0xFFFFFF);
-        graphics.drawCenteredString(font, Component.literal(source.getFileName().toString()),
+        graphics.centeredText(font, title, width / 2, height / 2 - 70, 0xFFFFFF);
+        graphics.centeredText(font, Component.literal(source.getFileName().toString()),
                 width / 2, height / 2 - 52, 0xA0A0A0);
-        graphics.drawString(font, "备份密码（明文备份留空）", width / 2 - 150, height / 2 - 32, 0xA0A0A0);
-        if (error != null) graphics.drawCenteredString(font, error, width / 2, height / 2 + 50, 0xFF5555);
-        super.render(graphics, mouseX, mouseY, partialTick);
+        graphics.text(font, "备份密码（明文备份留空）", width / 2 - 150, height / 2 - 32, 0xA0A0A0);
+        if (error != null) graphics.centeredText(font, error, width / 2, height / 2 + 50, 0xFF5555);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 }

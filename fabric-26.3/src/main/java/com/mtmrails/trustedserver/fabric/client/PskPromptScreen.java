@@ -1,10 +1,11 @@
 package com.mtmrails.trustedserver.fabric.client;
 
 import java.util.Optional;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
@@ -38,7 +39,7 @@ final class PskPromptScreen extends Screen {
         input = new EditBox(font, center - 150, height / 2 - 10, 300, 20,
                 Component.literal("Base64 PSK"));
         input.setMaxLength(128);
-        input.setFormatter((text, offset) -> FormattedCharSequence.forward("•".repeat(text.length()), Style.EMPTY));
+        input.addFormatter((text, offset) -> FormattedCharSequence.forward("•".repeat(text.length()), Style.EMPTY));
         addRenderableWidget(input);
         addRenderableWidget(Button.builder(Component.literal("保存并连接"), button -> submit())
                 .bounds(center - 150, height / 2 + 24, 145, 20).build());
@@ -54,16 +55,16 @@ final class PskPromptScreen extends Screen {
             return;
         }
         finished = true;
-        minecraft.setScreen(parent);
+        minecraft.setScreenAndShow(parent);
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 257 || keyCode == 335) {
+    public boolean keyPressed(KeyEvent event) {
+        if (event.isConfirmation()) {
             submit();
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     @Override
@@ -72,21 +73,21 @@ final class PskPromptScreen extends Screen {
             finished = true;
             cancelled.run();
         }
-        minecraft.setScreen(parent);
+        minecraft.setScreenAndShow(parent);
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, width, height, 0xC0101010);
-        graphics.drawCenteredString(font, title, width / 2, height / 2 - 72, 0xFFFFFF);
-        graphics.drawCenteredString(font, Component.literal("服务器：" + address), width / 2,
+        graphics.centeredText(font, title, width / 2, height / 2 - 72, 0xFFFFFF);
+        graphics.centeredText(font, Component.literal("服务器：" + address), width / 2,
                 height / 2 - 52, 0xA0A0A0);
-        graphics.drawCenteredString(font, Component.literal("请输入服主提供的 32 字节 Base64 PSK"), width / 2,
+        graphics.centeredText(font, Component.literal("请输入服主提供的 32 字节 Base64 PSK"), width / 2,
                 height / 2 - 34, 0xFFFFFF);
         if (error != null) {
-            graphics.drawCenteredString(font, error, width / 2, height / 2 + 52, 0xFF5555);
+            graphics.centeredText(font, error, width / 2, height / 2 + 52, 0xFF5555);
         }
-        super.render(graphics, mouseX, mouseY, partialTick);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
     @Override

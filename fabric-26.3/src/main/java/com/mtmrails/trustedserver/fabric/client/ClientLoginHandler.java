@@ -14,6 +14,7 @@ import com.mtmrails.trustedserver.fabric.MinecraftAccess;
 import com.mtmrails.trustedserver.fabric.mixin.ClientHandshakePacketListenerAccessor;
 import com.mtmrails.trustedserver.fabric.network.PlayPasswordNetworking;
 import com.mtmrails.trustedserver.core.wire.MalformedMessageException;
+import io.netty.buffer.Unpooled;
 import java.security.SecureRandom;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -22,7 +23,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientLoginConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientLoginNetworking;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientHandshakePacketListenerImpl;
@@ -47,7 +47,7 @@ final class ClientLoginHandler {
 
     void register() {
         for (Channel channel : Channel.values()) {
-            ClientLoginNetworking.registerGlobalReceiver(MinecraftAccess.resourceLocation(channel.id()),
+            ClientLoginNetworking.registerGlobalReceiver(MinecraftAccess.identifier(channel.id()),
                     (client, handler, buf, listenerAdder) -> onQuery(channel, client, handler, buf));
         }
         ClientLoginConnectionEvents.DISCONNECT.register((handler, client) -> {
@@ -70,8 +70,8 @@ final class ClientLoginHandler {
                 client.execute(() -> {
                     if (client.player != null) {
                         for (String notice : result.notices()) {
-                            client.player.displayClientMessage(Component.literal("[TrustedServer] " + notice)
-                                    .withStyle(ChatFormatting.YELLOW), false);
+                            client.player.sendSystemMessage(Component.literal("[TrustedServer] " + notice)
+                                    .withStyle(ChatFormatting.YELLOW));
                         }
                     }
                 });
@@ -154,8 +154,7 @@ final class ClientLoginHandler {
     private static void display(String text, ChatFormatting color) {
         Minecraft client = Minecraft.getInstance();
         if (client.player != null) {
-            client.player.displayClientMessage(
-                    Component.literal("[TrustedServer] " + text).withStyle(color), false);
+            client.player.sendSystemMessage(Component.literal("[TrustedServer] " + text).withStyle(color));
         }
     }
 
@@ -197,7 +196,7 @@ final class ClientLoginHandler {
     }
 
     private static FriendlyByteBuf toBuf(byte[] payload) {
-        FriendlyByteBuf buf = PacketByteBufs.create();
+        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
         buf.writeBytes(payload);
         return buf;
     }

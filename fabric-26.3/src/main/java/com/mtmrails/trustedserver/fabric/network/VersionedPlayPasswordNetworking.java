@@ -4,10 +4,10 @@ import com.mtmrails.trustedserver.core.message.Channel;
 import com.mtmrails.trustedserver.fabric.MinecraftAccess;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import io.netty.buffer.Unpooled;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.LoginPacketSender;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -42,24 +42,24 @@ final class VersionedPlayPasswordNetworking {
     }
 
     static void sendLoginQuery(Object sender, String channel, byte[] payload) {
-        net.minecraft.network.FriendlyByteBuf buf = PacketByteBufs.create();
+        net.minecraft.network.FriendlyByteBuf buf = new net.minecraft.network.FriendlyByteBuf(Unpooled.buffer());
         buf.writeBytes(payload);
-        ((LoginPacketSender) sender).sendPacket(MinecraftAccess.resourceLocation(channel), buf);
+        ((LoginPacketSender) sender).sendPacket(MinecraftAccess.identifier(channel), buf);
     }
 
     private static synchronized void registerTypes() {
         if (registered) {
             return;
         }
-        PayloadTypeRegistry.playC2S().register(PasswordPayload.TYPE, PasswordPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(PasswordPayload.TYPE, PasswordPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(PasswordPayload.TYPE, PasswordPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(PasswordPayload.TYPE, PasswordPayload.CODEC);
         registered = true;
     }
 
     private record PasswordPayload(byte[] data) implements CustomPacketPayload {
         private static final int MAX_LENGTH = 1 << 20;
         private static final Type<PasswordPayload> TYPE = new Type<>(
-                MinecraftAccess.resourceLocation(Channel.PASSWORD.id()));
+                MinecraftAccess.identifier(Channel.PASSWORD.id()));
         private static final StreamCodec<RegistryFriendlyByteBuf, PasswordPayload> CODEC =
                 StreamCodec.ofMember(PasswordPayload::write, PasswordPayload::read);
 

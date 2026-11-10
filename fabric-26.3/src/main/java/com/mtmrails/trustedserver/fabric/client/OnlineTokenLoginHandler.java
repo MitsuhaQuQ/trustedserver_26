@@ -3,6 +3,7 @@ package com.mtmrails.trustedserver.fabric.client;
 import com.mtmrails.trustedserver.client.OnlineTokens;
 import com.mtmrails.trustedserver.core.crypto.OnlineTokenWire;
 import com.mtmrails.trustedserver.fabric.MinecraftAccess;
+import io.netty.buffer.Unpooled;
 import com.mtmrails.trustedserver.core.wire.MalformedMessageException;
 import com.mtmrails.trustedserver.fabric.TrustedServerFabric;
 import java.io.IOException;
@@ -13,12 +14,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import net.fabricmc.fabric.api.client.networking.v1.ClientLoginConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientLoginNetworking;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientHandshakePacketListenerImpl;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 
 /** 正版 session 成功后的自动令牌登记；无需玩家复制凭据或在换机时请求重置。 */
 final class OnlineTokenLoginHandler {
@@ -33,7 +32,7 @@ final class OnlineTokenLoginHandler {
     }
 
     void register() {
-        ClientLoginNetworking.registerGlobalReceiver(MinecraftAccess.resourceLocation(OnlineTokenWire.CHANNEL),
+        ClientLoginNetworking.registerGlobalReceiver(MinecraftAccess.identifier(OnlineTokenWire.CHANNEL),
                 (client, handler, buf, listenerAdder) -> onQuery(client, handler, buf));
         ClientLoginConnectionEvents.DISCONNECT.register((handler, client) -> pending.remove(handler));
     }
@@ -97,7 +96,7 @@ final class OnlineTokenLoginHandler {
     }
 
     private static FriendlyByteBuf toBuf(byte[] payload) {
-        FriendlyByteBuf buf = PacketByteBufs.create();
+        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
         buf.writeBytes(payload);
         return buf;
     }

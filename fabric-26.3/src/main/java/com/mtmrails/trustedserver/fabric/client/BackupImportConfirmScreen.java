@@ -1,7 +1,7 @@
 package com.mtmrails.trustedserver.fabric.client;
 
 import com.mtmrails.trustedserver.client.PlayerKeyBackupManager;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -37,7 +37,7 @@ final class BackupImportConfirmScreen extends Screen {
     private void apply(boolean overwrite) {
         try {
             PlayerKeyBackupManager.ImportResult result = manager.apply(preview, overwrite);
-            minecraft.setScreen(new KeyBackupScreen(parent.rootParent(), manager,
+            minecraft.setScreenAndShow(new KeyBackupScreen(parent.rootParent(), manager,
                     "导入完成：新增 " + result.added() + "，相同 " + result.identical()
                             + "，覆盖 " + result.replaced() + "，跳过冲突 " + result.conflictsSkipped()));
         } catch (Exception e) {
@@ -47,24 +47,24 @@ final class BackupImportConfirmScreen extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.setScreenAndShow(parent);
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, width, height, 0xC0101010);
         long missing = preview.entries().stream()
                 .filter(e -> e.disposition() == PlayerKeyBackupManager.Disposition.MISSING).count();
         long identical = preview.entries().stream()
                 .filter(e -> e.disposition() == PlayerKeyBackupManager.Disposition.IDENTICAL).count();
-        graphics.drawCenteredString(font, title, width / 2, height / 2 - 70, 0xFFFFFF);
-        graphics.drawCenteredString(font, Component.literal("新增 " + missing + "，已有相同 " + identical
+        graphics.centeredText(font, title, width / 2, height / 2 - 70, 0xFFFFFF);
+        graphics.centeredText(font, Component.literal("新增 " + missing + "，已有相同 " + identical
                 + "，本机不同密钥冲突 " + preview.conflicts()), width / 2, height / 2 - 42, 0xFFFFFF);
         if (preview.conflicts() > 0) {
-            graphics.drawCenteredString(font, Component.literal("覆盖会替换本机设备密钥，必须明确确认"),
+            graphics.centeredText(font, Component.literal("覆盖会替换本机设备密钥，必须明确确认"),
                     width / 2, height / 2 - 20, 0xFF5555);
         }
-        if (error != null) graphics.drawCenteredString(font, error, width / 2, height / 2 + 66, 0xFF5555);
-        super.render(graphics, mouseX, mouseY, partialTick);
+        if (error != null) graphics.centeredText(font, error, width / 2, height / 2 + 66, 0xFF5555);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 }

@@ -14,7 +14,6 @@ import java.security.SecureRandom;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 
 /**
@@ -69,14 +68,14 @@ final class FabricClientEnvironment implements ClientEnvironment {
             } catch (IOException e) {
                 throw new CompletionException(e);
             }
-        }, Util.ioPool());
+        }, java.util.concurrent.ForkJoinPool.commonPool());
     }
 
     @Override
     public CompletableFuture<Optional<PasswordAnswer>> promptPassword(PasswordRequest request) {
         CompletableFuture<Optional<PasswordAnswer>> result = new CompletableFuture<>();
         Minecraft client = Minecraft.getInstance();
-        client.execute(() -> client.setScreen(new PasswordPromptScreen(client.screen, request, result)));
+        client.execute(() -> client.setScreenAndShow(new PasswordPromptScreen(null, request, result)));
         return result;
     }
 }

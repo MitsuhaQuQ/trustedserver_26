@@ -16,6 +16,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.Permissions;
 
 /**
  * 控制台管理员命令（PROTOCOL.md 第 6 节）。只允许控制台使用：来源不能是实体，且须有最高权限等级。
@@ -35,7 +36,8 @@ final class AdminCommands {
 
     static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("trustedserver")
-                .requires(source -> source.getEntity() == null && source.hasPermission(4))
+                .requires(source -> source.getEntity() == null
+                        && source.permissions().hasPermission(Permissions.COMMANDS_OWNER))
                 .then(Commands.literal("fingerprint").executes(ctx -> {
                     TrustedServerRuntime runtime = TrustedServerRuntime.get();
                     ctx.getSource().sendSuccess(() -> Component.literal("Server identity fingerprint: "
@@ -118,8 +120,8 @@ final class AdminCommands {
         try {
             return UUID.fromString(player).toString();
         } catch (IllegalArgumentException notUuid) {
-            Optional<UUID> id = server.getProfileCache() == null ? Optional.empty()
-                    : server.getProfileCache().get(player).map(p -> p.getId());
+            Optional<UUID> id = server.services().nameToIdCache().get(player)
+                    .map(net.minecraft.server.players.NameAndId::id);
             return id.map(UUID::toString).orElse(player.toLowerCase(Locale.ROOT));
         }
     }

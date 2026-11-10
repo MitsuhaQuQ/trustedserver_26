@@ -7,11 +7,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
 /** Mod 设置中的玩家认证密钥导入 / 导出入口。 */
 final class KeyBackupScreen extends Screen {
@@ -110,14 +109,13 @@ final class KeyBackupScreen extends Screen {
             updateExportButton();
             return;
         }
-        minecraft.setScreen(new BackupExportPasswordScreen(this, manager, chosen));
+        minecraft.setScreenAndShow(new BackupExportPasswordScreen(this, manager, chosen));
     }
 
     private void importBackup() {
-        String chosen = TinyFileDialogs.tinyfd_openFileDialog("导入 TrustedServer 认证", "", null,
-                "TrustedServer key backup", false);
+        Path chosen = ClientFileChooser.chooseOpen();
         if (chosen != null) {
-            minecraft.setScreen(new BackupImportPasswordScreen(this, manager, Path.of(chosen)));
+            minecraft.setScreenAndShow(new BackupImportPasswordScreen(this, manager, chosen));
         }
     }
 
@@ -127,22 +125,22 @@ final class KeyBackupScreen extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.setScreenAndShow(parent);
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, width, height, 0xC0101010);
-        graphics.drawCenteredString(font, title, width / 2, 20, 0xFFFFFF);
-        graphics.drawCenteredString(font, Component.literal("默认全选；备份不包含登录密码或服务器私钥"),
+        graphics.centeredText(font, title, width / 2, 20, 0xFFFFFF);
+        graphics.centeredText(font, Component.literal("默认全选；备份不包含登录密码或服务器私钥"),
                 width / 2, 33, 0xA0A0A0);
         if (keys.isEmpty() && status == null) {
-            graphics.drawCenteredString(font, Component.literal("本机还没有玩家认证密钥"),
+            graphics.centeredText(font, Component.literal("本机还没有玩家认证密钥"),
                     width / 2, height / 2, 0xA0A0A0);
         }
         if (status != null) {
-            graphics.drawCenteredString(font, status, width / 2, height - 92, 0xFFFF55);
+            graphics.centeredText(font, status, width / 2, height - 92, 0xFFFF55);
         }
-        super.render(graphics, mouseX, mouseY, partialTick);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 }

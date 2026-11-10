@@ -5,6 +5,7 @@ import com.mtmrails.trustedserver.core.crypto.PresharedKeyHandshake;
 import com.mtmrails.trustedserver.core.crypto.PskAuthenticationException;
 import com.mtmrails.trustedserver.core.crypto.PskWire;
 import com.mtmrails.trustedserver.fabric.MinecraftAccess;
+import io.netty.buffer.Unpooled;
 import com.mtmrails.trustedserver.core.wire.MalformedMessageException;
 import com.mtmrails.trustedserver.fabric.TrustedServerFabric;
 import java.io.IOException;
@@ -17,12 +18,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import net.fabricmc.fabric.api.client.networking.v1.ClientLoginConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientLoginNetworking;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientHandshakePacketListenerImpl;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 
 /** 第一阶段客户端 PSK 门禁；验证成功后由原版继续登录。 */
 final class PskLoginHandler {
@@ -40,7 +39,7 @@ final class PskLoginHandler {
     }
 
     void register() {
-        ClientLoginNetworking.registerGlobalReceiver(MinecraftAccess.resourceLocation(PskWire.CHANNEL),
+        ClientLoginNetworking.registerGlobalReceiver(MinecraftAccess.identifier(PskWire.CHANNEL),
                 (client, handler, buf, listenerAdder) -> onQuery(client, handler, buf));
         ClientLoginConnectionEvents.DISCONNECT.register((handler, client) -> close(handler));
     }
@@ -80,7 +79,7 @@ final class PskLoginHandler {
                         configured.orElseThrow()));
             }
             CompletableFuture<byte[]> supplied = new CompletableFuture<>();
-            PskPromptScreen screen = new PskPromptScreen(minecraft.screen, address, encoded -> {
+            PskPromptScreen screen = new PskPromptScreen(null, address, encoded -> {
                 byte[] key = null;
                 try {
                     key = PresharedKeys.decode(encoded);
@@ -102,7 +101,7 @@ final class PskLoginHandler {
                 pending = raced;
             } else {
                 PskPromptScreen prompt = screen;
-                minecraft.execute(() -> minecraft.setScreen(prompt));
+                minecraft.execute(() -> minecraft.setScreenAndShow(prompt));
                 return CompletableFuture.completedFuture(toBuf(PskWire.encodePromptRequest()));
             }
         }
@@ -172,7 +171,7 @@ final class PskLoginHandler {
     }
 
     private static FriendlyByteBuf toBuf(byte[] payload) {
-        FriendlyByteBuf buf = PacketByteBufs.create();
+        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
         buf.writeBytes(payload);
         return buf;
     }

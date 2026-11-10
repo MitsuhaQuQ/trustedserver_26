@@ -4,11 +4,11 @@ import com.mtmrails.trustedserver.core.message.PasswordRequest;
 import com.mtmrails.trustedserver.core.message.PasswordAnswer;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import net.minecraft.Util;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
@@ -31,7 +31,7 @@ final class PasswordPromptScreen extends Screen {
         this.parent = parent;
         this.request = request;
         this.result = result;
-        this.deadlineMillis = Util.getMillis() + request.timeoutSec() * 1000L;
+        this.deadlineMillis = System.currentTimeMillis() + request.timeoutSec() * 1000L;
     }
 
     @Override
@@ -78,7 +78,7 @@ final class PasswordPromptScreen extends Screen {
     }
 
     private static void mask(EditBox box) {
-        box.setFormatter((text, offset) ->
+        box.addFormatter((text, offset) ->
                 FormattedCharSequence.forward("•".repeat(text.length()), Style.EMPTY));
     }
 
@@ -127,24 +127,24 @@ final class PasswordPromptScreen extends Screen {
         result.complete(value);
         if (password != null) password.setValue("");
         if (confirm != null) confirm.setValue("");
-        if (restoreParent && minecraft.screen == this) minecraft.setScreen(parent);
+        if (restoreParent) minecraft.setScreenAndShow(parent);
     }
 
     @Override
     public void tick() {
-        if (Util.getMillis() >= deadlineMillis) {
+        if (System.currentTimeMillis() >= deadlineMillis) {
             error = Component.literal("输入已超时");
             finish(Optional.empty(), true);
         }
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (!confirmingClear && (keyCode == 257 || keyCode == 335)) {
+    public boolean keyPressed(KeyEvent event) {
+        if (!confirmingClear && event.isConfirmation()) {
             submit();
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     @Override
@@ -160,22 +160,22 @@ final class PasswordPromptScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, width, height, 0xC0101010);
-        int remaining = (int) Math.max(0, (deadlineMillis - Util.getMillis() + 999) / 1000);
-        graphics.drawCenteredString(font, title, width / 2, height / 2 - 88, 0xFFFFFF);
+        int remaining = (int) Math.max(0, (deadlineMillis - System.currentTimeMillis() + 999) / 1000);
+        graphics.centeredText(font, title, width / 2, height / 2 - 88, 0xFFFFFF);
         String description = confirmingClear ? "确认后将移除本账号的登录密码" : descriptionFor(request.kind());
-        graphics.drawCenteredString(font, Component.literal(description),
+        graphics.centeredText(font, Component.literal(description),
                 width / 2, height / 2 - 68, 0xA0A0A0);
         if (!hasConfirmation()) {
-            graphics.drawCenteredString(font,
+            graphics.centeredText(font,
                     Component.literal("剩余尝试次数：" + request.attemptsLeft()),
                     width / 2, height / 2 - 50, 0xFFFF55);
         }
-        graphics.drawString(font, "剩余时间：" + remaining + " 秒", width / 2 - 150,
+        graphics.text(font, "剩余时间：" + remaining + " 秒", width / 2 - 150,
                 hasConfirmation() ? height / 2 - 50 : height / 2 - 36, 0xA0A0A0);
-        if (error != null) graphics.drawCenteredString(font, error, width / 2, height / 2 + 20, 0xFF5555);
-        super.render(graphics, mouseX, mouseY, partialTick);
+        if (error != null) graphics.centeredText(font, error, width / 2, height / 2 + 20, 0xFF5555);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
     private static String titleFor(PasswordRequest.Kind kind) {

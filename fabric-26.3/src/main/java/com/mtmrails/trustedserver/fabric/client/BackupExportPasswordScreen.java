@@ -5,14 +5,13 @@ import com.mtmrails.trustedserver.client.StoredKey;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
-import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
 /** 导出密码与明文风险确认。 */
 final class BackupExportPasswordScreen extends Screen {
@@ -38,8 +37,8 @@ final class BackupExportPasswordScreen extends Screen {
         confirm = new EditBox(font, center - 150, height / 2 - 14, 300, 20, Component.literal("确认密码"));
         password.setMaxLength(256);
         confirm.setMaxLength(256);
-        password.setFormatter((text, offset) -> FormattedCharSequence.forward("•".repeat(text.length()), Style.EMPTY));
-        confirm.setFormatter((text, offset) -> FormattedCharSequence.forward("•".repeat(text.length()), Style.EMPTY));
+        password.addFormatter((text, offset) -> FormattedCharSequence.forward("•".repeat(text.length()), Style.EMPTY));
+        confirm.addFormatter((text, offset) -> FormattedCharSequence.forward("•".repeat(text.length()), Style.EMPTY));
         addRenderableWidget(password);
         addRenderableWidget(confirm);
         addRenderableWidget(new RiskCheckbox(center - 150, height / 2 + 12, 300,
@@ -66,12 +65,11 @@ final class BackupExportPasswordScreen extends Screen {
             error = Component.literal("明文导出前必须明确确认风险");
             return;
         }
-        String chosen = TinyFileDialogs.tinyfd_saveFileDialog("导出 TrustedServer 认证",
-                "trustedserver-keys.tskb", null, "TrustedServer key backup");
+        Path chosen = ClientFileChooser.chooseSave("trustedserver-keys.tskb");
         if (chosen == null) return;
         try {
-            manager.export(Path.of(chosen), selected, secret.isEmpty() ? Optional.empty() : Optional.of(secret));
-            minecraft.setScreen(new KeyBackupScreen(parent.rootParent(), manager,
+            manager.export(chosen, selected, secret.isEmpty() ? Optional.empty() : Optional.of(secret));
+            minecraft.setScreenAndShow(new KeyBackupScreen(parent.rootParent(), manager,
                     "已导出 " + selected.size() + " 份认证密钥"));
         } catch (Exception e) {
             error = Component.literal("导出失败：" + e.getMessage());
@@ -80,18 +78,18 @@ final class BackupExportPasswordScreen extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.setScreenAndShow(parent);
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, width, height, 0xC0101010);
-        graphics.drawCenteredString(font, title, width / 2, height / 2 - 90, 0xFFFFFF);
-        graphics.drawCenteredString(font, Component.literal("密码可留空，但拿到明文文件的人可以冒充你登录这些服务器"),
+        graphics.centeredText(font, title, width / 2, height / 2 - 90, 0xFFFFFF);
+        graphics.centeredText(font, Component.literal("密码可留空，但拿到明文文件的人可以冒充你登录这些服务器"),
                 width / 2, height / 2 - 68, 0xFF5555);
-        graphics.drawString(font, "备份密码（可选）", width / 2 - 150, height / 2 - 54, 0xA0A0A0);
-        graphics.drawString(font, "再次输入", width / 2 - 150, height / 2 - 26, 0xA0A0A0);
-        if (error != null) graphics.drawCenteredString(font, error, width / 2, height / 2 + 40, 0xFF5555);
-        super.render(graphics, mouseX, mouseY, partialTick);
+        graphics.text(font, "备份密码（可选）", width / 2 - 150, height / 2 - 54, 0xA0A0A0);
+        graphics.text(font, "再次输入", width / 2 - 150, height / 2 - 26, 0xA0A0A0);
+        if (error != null) graphics.centeredText(font, error, width / 2, height / 2 + 40, 0xFF5555);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 }

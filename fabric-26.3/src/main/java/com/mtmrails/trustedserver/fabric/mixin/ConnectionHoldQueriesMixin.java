@@ -6,7 +6,7 @@ import com.mtmrails.trustedserver.fabric.server.LoginFlow;
 import com.mtmrails.trustedserver.fabric.server.TrustedServerRuntime;
 import net.minecraft.network.Connection;
 import net.minecraft.network.PacketListener;
-import net.minecraft.network.PacketSendListener;
+import io.netty.channel.ChannelFutureListener;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.login.ClientboundCustomQueryPacket;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
@@ -28,9 +28,9 @@ abstract class ConnectionHoldQueriesMixin {
     @Shadow
     public abstract PacketListener getPacketListener();
 
-    @Inject(method = "send(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketSendListener;)V",
+    @Inject(method = "send(Lnet/minecraft/network/protocol/Packet;Lio/netty/channel/ChannelFutureListener;)V",
             at = @At("HEAD"), cancellable = true)
-    private void trustedserver$holdForeignQueries(Packet<?> packet, PacketSendListener listener, CallbackInfo ci) {
+    private void trustedserver$holdForeignQueries(Packet<?> packet, ChannelFutureListener listener, CallbackInfo ci) {
         if (!(packet instanceof ClientboundCustomQueryPacket query)
                 || MinecraftAccess.loginQueryId(query).getNamespace().equals(OWN_NAMESPACE)) {
             return;

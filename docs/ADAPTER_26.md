@@ -8,8 +8,14 @@
 - Minecraft 26.3、Fabric Loader 0.20.1、Fabric API 0.165.2 依赖
 - 通用 core、客户端密钥与服务端账号模块同步
 - 旧版适配源码作为迁移基线
+- `Identifier`、26.3 payload registry、ByteBuf 与登录 query 迁移
+- `GuiGraphicsExtractor` render-state 认证界面
+- `NameAndId`、权限集、命令树与 OP 暂停迁移
+- SDL3 环境下的 JDK 文件选择器
+- 全部服务端和客户端 Mixin audit 通过
+- 服务端启动到 EULA 检查，客户端启动到主菜单
 
-## 编译阻断项
+## 已解决的编译阻断项
 
 1. GUI 改为 `GuiGraphicsExtractor` 的 render-state 提取模型，全部认证 Screen 和自定义复选框需要重写。
 2. `ResourceLocation` 更名为 `Identifier`，需要 26.x 专用频道 ID 适配。
@@ -19,10 +25,8 @@
 6. Minecraft 使用 SDL3，旧 LWJGL TinyFD 文件选择器不可用。
 7. 登录、状态、旧版 Ping、游戏阶段访问限制的 Mixin 目标需要逐项重新确认。
 
-## 完成标准
+## 剩余完成标准
 
-- `./gradlew clean build` 成功
-- Mixin audit 成功
 - offline-mode：正确/错误/缺失 PSK 路径联调
 - online-mode：令牌首次签发与再次证明联调
 - Ed25519、登录密码、找回密码、新用户限制联调

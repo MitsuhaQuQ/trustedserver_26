@@ -39,7 +39,7 @@ public final class TrustedServerDedicated implements DedicatedServerModInitializ
             }
             flow.start(sender, synchronizer);
         });
-        ServerLoginNetworking.registerGlobalReceiver(MinecraftAccess.resourceLocation(PskWire.CHANNEL),
+        ServerLoginNetworking.registerGlobalReceiver(MinecraftAccess.identifier(PskWire.CHANNEL),
                 (server, handler, understood, buf, synchronizer, responseSender) -> {
                     TrustedServerRuntime runtime = TrustedServerRuntime.get();
                     LoginFlow flow = runtime == null ? null : runtime.flows.get(handler);
@@ -47,7 +47,7 @@ public final class TrustedServerDedicated implements DedicatedServerModInitializ
                         flow.onPskAnswer(understood, buf);
                     }
                 });
-        ServerLoginNetworking.registerGlobalReceiver(MinecraftAccess.resourceLocation(OnlineTokenWire.CHANNEL),
+        ServerLoginNetworking.registerGlobalReceiver(MinecraftAccess.identifier(OnlineTokenWire.CHANNEL),
                 (server, handler, understood, buf, synchronizer, responseSender) -> {
                     TrustedServerRuntime runtime = TrustedServerRuntime.get();
                     LoginFlow flow = runtime == null ? null : runtime.flows.get(handler);
@@ -56,7 +56,7 @@ public final class TrustedServerDedicated implements DedicatedServerModInitializ
                     }
                 });
         for (Channel channel : Channel.values()) {
-            ServerLoginNetworking.registerGlobalReceiver(MinecraftAccess.resourceLocation(channel.id()),
+            ServerLoginNetworking.registerGlobalReceiver(MinecraftAccess.identifier(channel.id()),
                     (server, handler, understood, buf, synchronizer, responseSender) -> {
                         TrustedServerRuntime runtime = TrustedServerRuntime.get();
                         LoginFlow flow = runtime == null ? null : runtime.flows.get(handler);

@@ -342,7 +342,8 @@ public final class TrustedServerRuntime {
     void notifySuspendedOp(ServerPlayer player) {
         String notice = config.opSuspendedNotice();
         if (!notice.isEmpty() && opSuspended(player.getUUID())
-                && player.server.getPlayerList().getOps().get(player.getGameProfile()) != null) {
+                && player.level().getServer().getPlayerList().getOps()
+                        .get(new net.minecraft.server.players.NameAndId(player.getGameProfile())) != null) {
             player.sendSystemMessage(Component.literal("[TrustedServer] " + notice));
         }
     }
@@ -374,7 +375,7 @@ public final class TrustedServerRuntime {
         if (access != null) {
             access.hasPassword = true;
             access.restricted = false;
-            player.server.getPlayerList().sendPlayerPermissionLevel(player);
+            player.level().getServer().getPlayerList().sendPlayerPermissionLevel(player);
         }
     }
 

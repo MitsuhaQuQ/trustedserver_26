@@ -2,9 +2,10 @@ package com.mtmrails.trustedserver.fabric.client;
 
 import java.util.function.Consumer;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.network.chat.Component;
 
 /** 不依赖原版 Checkbox 构造器的跨版本复选框。 */
@@ -24,13 +25,13 @@ final class RiskCheckbox extends AbstractButton {
     }
 
     @Override
-    public void onPress() {
+    public void onPress(InputWithModifiers input) {
         selected = !selected;
         onChange.accept(selected);
     }
 
     @Override
-    protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         int x = getX();
         int y = getY() + 2;
         int border = isHoveredOrFocused() ? 0xFFFFFFFF : 0xFFAAAAAA;
@@ -41,7 +42,7 @@ final class RiskCheckbox extends AbstractButton {
             graphics.fill(x + 6, y + 5, x + 10, y + 12, 0xFFFFFFFF);
             graphics.fill(x + 9, y + 3, x + 13, y + 8, 0xFFFFFFFF);
         }
-        graphics.drawString(font, getMessage(), x + BOX_SIZE + 6, getY() + 6, 0xFFFFFF);
+        graphics.text(font, getMessage(), x + BOX_SIZE + 6, getY() + 6, 0xFFFFFF);
     }
 
     @Override

@@ -3,7 +3,7 @@ package com.mtmrails.trustedserver.fabric.mixin;
 import com.mtmrails.trustedserver.fabric.server.TrustedServerRuntime;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.ServerInfo;
 import net.minecraft.server.network.LegacyQueryHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -17,12 +17,12 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(LegacyQueryHandler.class)
 abstract class LegacyQueryHandlerMixin {
     @Shadow
-    private void sendFlushAndClose(ChannelHandlerContext ctx, ByteBuf buf) {
+    private static void sendFlushAndClose(ChannelHandlerContext ctx, ByteBuf buf) {
     }
 
-    @Redirect(method = "channelRead", at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/server/MinecraftServer;getPlayerCount()I"))
-    private int trustedserver$playerCount(MinecraftServer server) {
+    @Redirect(method = {"createVersion0Response", "createVersion1Response"}, at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/server/ServerInfo;getPlayerCount()I"))
+    private static int trustedserver$playerCount(ServerInfo server) {
         TrustedServerRuntime runtime = TrustedServerRuntime.get();
         return runtime == null ? server.getPlayerCount()
                 : runtime.displayedPlayerCount(server.getPlayerCount(), server.getMaxPlayers());
@@ -30,7 +30,7 @@ abstract class LegacyQueryHandlerMixin {
 
     @Redirect(method = "channelRead", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/server/network/LegacyQueryHandler;sendFlushAndClose(Lio/netty/channel/ChannelHandlerContext;Lio/netty/buffer/ByteBuf;)V"))
-    private void trustedserver$rateLimit(LegacyQueryHandler self, ChannelHandlerContext ctx, ByteBuf buf) {
+    private void trustedserver$rateLimit(ChannelHandlerContext ctx, ByteBuf buf) {
         TrustedServerRuntime runtime = TrustedServerRuntime.get();
         if (runtime != null && (runtime.legacyPingDisabled()
                 || !runtime.allowPing(ctx.channel().remoteAddress()))) {

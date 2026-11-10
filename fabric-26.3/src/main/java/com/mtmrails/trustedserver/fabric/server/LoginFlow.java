@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import net.minecraft.network.Connection;
-import net.minecraft.network.PacketSendListener;
+import io.netty.channel.ChannelFutureListener;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.login.ClientboundCustomQueryPacket;
 import net.minecraft.core.UUIDUtil;
@@ -30,12 +30,10 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.fabricmc.fabric.api.networking.v1.ServerLoginNetworking;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
 
@@ -81,7 +79,7 @@ public final class LoginFlow {
     private final List<HeldPacket> held = new ArrayList<>();
     private boolean released;
 
-    private record HeldPacket(Connection connection, Packet<?> packet, PacketSendListener listener) {
+    private record HeldPacket(Connection connection, Packet<?> packet, ChannelFutureListener listener) {
     }
 
     private enum PskStage {
@@ -155,18 +153,18 @@ public final class LoginFlow {
             return;
         }
         // 离线模式下此时还没有 UUID（原版稍后才生成）；按原版规则提前算出离线 UUID，封禁记录也是按它存的
-        profile = raw.getId() != null ? raw : new GameProfile(UUIDUtil.createOfflinePlayerUUID(raw.getName()), raw.getName());
-        if (server.getPlayerList().getBans().isBanned(profile)) {
+        profile = raw.id() != null ? raw : new GameProfile(UUIDUtil.createOfflinePlayerUUID(raw.name()), raw.name());
+        if (server.getPlayerList().getBans().isBanned(new net.minecraft.server.players.NameAndId(profile))) {
             rejectBeforeHandshake("banned");
             return;
         }
         scheduleTimeout(runtime.gateTimeoutSec());
-        if (server.usesAuthentication() && !offlineFallback && raw.getId() != null) {
+        if (server.usesAuthentication() && !offlineFallback && raw.id() != null) {
             beginOnlineToken();
             return;
         }
         try {
-            if (runtime.onlineTokens().isReservedName(profile.getName())) {
+            if (runtime.onlineTokens().isReservedName(profile.name())) {
                 rejectBeforeHandshake("offline fallback attempted reserved online name");
                 return;
             }
@@ -180,8 +178,8 @@ public final class LoginFlow {
     private void beginOnlineToken() {
         byte[] nonce = new byte[OnlineTokenWire.NONCE_LENGTH];
         runtime.random().nextBytes(nonce);
-        tokenChallenge = new OnlineTokenWire.Challenge(runtime.identity().publicKey(), profile.getId(),
-                profile.getName(), nonce);
+        tokenChallenge = new OnlineTokenWire.Challenge(runtime.identity().publicKey(), profile.id(),
+                profile.name(), nonce);
         onlineStage = OnlineStage.WAIT_PROOF;
         sendOnline(OnlineTokenWire.encodeChallenge(tokenChallenge));
     }
@@ -192,7 +190,7 @@ public final class LoginFlow {
             if (done) {
                 return;
             }
-            psk = PresharedKeyHandshake.beginServer(runtime.psk(), PskWire.context(profile.getName()), runtime.random());
+            psk = PresharedKeyHandshake.beginServer(runtime.psk(), PskWire.context(profile.name()), runtime.random());
             pskStage = PskStage.WAIT_CLIENT_RESPONSE;
             challenge = PskWire.encodeChallenge(psk.challenge());
         }
@@ -222,7 +220,7 @@ public final class LoginFlow {
                         promptGranted = true;
                         psk.close();
                         psk = PresharedKeyHandshake.beginServer(runtime.psk(),
-                                PskWire.context(profile.getName()), runtime.random());
+                                PskWire.context(profile.name()), runtime.random());
                         next = PskWire.encodeChallenge(psk.challenge());
                         scheduleTimeout(runtime.authConfig().passwordTimeoutSec());
                     } else {
@@ -266,7 +264,7 @@ public final class LoginFlow {
                 if (onlineStage == OnlineStage.WAIT_PROOF) {
                     OnlineTokenWire.ClientProof proof = OnlineTokenWire.decodeClientProof(payload);
                     boolean matched = false;
-                    for (byte[] token : runtime.onlineTokens().tokens(profile.getId())) {
+                    for (byte[] token : runtime.onlineTokens().tokens(profile.id())) {
                         try {
                             matched |= OnlineTokenWire.verifiesToken(token, tokenChallenge, proof);
                         } finally {
@@ -287,7 +285,7 @@ public final class LoginFlow {
                             OnlineTokenWire.decodeAck(payload))) {
                         throw new MalformedMessageException("bad online token acknowledgement");
                     }
-                    runtime.onlineTokens().add(profile.getId(), profile.getName(), issuedToken);
+                    runtime.onlineTokens().add(profile.id(), profile.name(), issuedToken);
                     clearIssuedToken();
                     onlineStage = OnlineStage.PASSED;
                     accepted = true;
@@ -337,16 +335,16 @@ public final class LoginFlow {
                 return;
             }
             String accountId = mojangVerified
-                    ? profile.getId().toString()
-                    : profile.getName().toLowerCase(Locale.ROOT);
-            session = new ServerAuthSession(accountId, profile.getName(), server.usesAuthentication(),
+                    ? profile.id().toString()
+                    : profile.name().toLowerCase(Locale.ROOT);
+            session = new ServerAuthSession(accountId, profile.name(), server.usesAuthentication(),
                     mojangVerified, runtime.authConfig(), runtime.identity(), runtime.accounts(), runtime.random());
             formalAuth = session;
             scheduleTimeout(runtime.authTimeoutSec());
         }
         sendFormal(session.start());
         TrustedServerFabric.LOGGER.debug("{} passed {} base gate; starting Ed25519 authentication",
-                profile.getName(), method);
+                profile.name(), method);
     }
 
     /** 处理正式认证频道的回答；数据库和密码哈希结果统一切回服务端线程。 */
@@ -408,7 +406,7 @@ public final class LoginFlow {
      *
      * @return {@code true} 表示已扣下或丢弃，调用方不应再发送
      */
-    public boolean holdOutgoing(Connection connection, Packet<?> packet, PacketSendListener listener) {
+    public boolean holdOutgoing(Connection connection, Packet<?> packet, ChannelFutureListener listener) {
         synchronized (lock) {
             if (released) {
                 return false;
@@ -446,7 +444,7 @@ public final class LoginFlow {
         }
         reportGate(true);
         runtime.flows.remove(handler);
-        TrustedServerFabric.LOGGER.info("{} passed TrustedServer {} gate", profile.getName(), method);
+        TrustedServerFabric.LOGGER.info("{} passed TrustedServer {} gate", profile.name(), method);
         authDone.complete(null);
     }
 
@@ -551,7 +549,7 @@ public final class LoginFlow {
     }
 
     private void log(String reason, boolean trusted) {
-        String who = profile != null ? profile.getName() : "?";
+        String who = profile != null ? profile.name() : "?";
         if (trusted) {
             TrustedServerFabric.LOGGER.info("Rejected {} from {} after trusted handshake: {}", who,
                     address.getHostAddress(), reason);

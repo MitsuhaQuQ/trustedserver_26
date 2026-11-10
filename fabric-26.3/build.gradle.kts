@@ -31,6 +31,14 @@ java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
 }
 
+loom {
+    runs {
+        configureEach {
+            vmArg("-Dtrustedserver.auditMixins=true")
+        }
+    }
+}
+
 tasks.processResources {
     inputs.property("version", project.version)
     filesMatching("fabric.mod.json") {

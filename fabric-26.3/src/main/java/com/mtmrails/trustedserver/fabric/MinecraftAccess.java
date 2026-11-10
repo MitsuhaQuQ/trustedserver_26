@@ -7,7 +7,7 @@ import java.lang.reflect.Method;
 import net.minecraft.network.Connection;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.login.ClientboundCustomQueryPacket;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
 
 /**
@@ -24,9 +24,8 @@ public final class MinecraftAccess {
     private MinecraftAccess() {
     }
 
-    /** ResourceLocation 的单字符串构造器在 1.21 变为私有，tryParse 在全部目标版本中保持可用。 */
-    public static ResourceLocation resourceLocation(String value) {
-        ResourceLocation result = ResourceLocation.tryParse(value);
+    public static Identifier identifier(String value) {
+        Identifier result = Identifier.tryParse(value);
         if (result == null) {
             throw new IllegalArgumentException("invalid resource location " + value);
         }
@@ -51,8 +50,8 @@ public final class MinecraftAccess {
     }
 
     /** 兼容 1.20.1 的 identifier 字段和 1.20.2+ 的 CustomQueryPayload 包装。 */
-    public static ResourceLocation loginQueryId(ClientboundCustomQueryPacket packet) {
-        ResourceLocation direct = fieldValue(packet, ResourceLocation.class);
+    public static Identifier loginQueryId(ClientboundCustomQueryPacket packet) {
+        Identifier direct = fieldValue(packet, Identifier.class);
         if (direct != null) {
             return direct;
         }
@@ -64,14 +63,14 @@ public final class MinecraftAccess {
             if (payload == null) {
                 continue;
             }
-            ResourceLocation nested = fieldValue(payload, ResourceLocation.class);
+            Identifier nested = fieldValue(payload, Identifier.class);
             if (nested != null) {
                 return nested;
             }
             for (Method method : payload.getClass().getMethods()) {
-                if (method.getParameterCount() == 0 && method.getReturnType() == ResourceLocation.class) {
+                if (method.getParameterCount() == 0 && method.getReturnType() == Identifier.class) {
                     try {
-                        return (ResourceLocation) method.invoke(payload);
+                        return (Identifier) method.invoke(payload);
                     } catch (IllegalAccessException | InvocationTargetException e) {
                         throw new IllegalStateException("cannot access login query id", e);
                     }
